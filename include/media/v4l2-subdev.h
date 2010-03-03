@@ -37,6 +37,8 @@
 
 struct v4l2_device;
 struct v4l2_ctrl_handler;
+struct v4l2_event_subscription;
+struct v4l2_fh;
 struct v4l2_subdev;
 struct tuner_setup;
 
@@ -135,6 +137,10 @@ struct v4l2_subdev_core_ops {
 	int (*s_register)(struct v4l2_subdev *sd, struct v4l2_dbg_register *reg);
 #endif
 	int (*s_power)(struct v4l2_subdev *sd, int on);
+	int (*subscribe_event)(struct v4l2_subdev *sd, struct v4l2_fh *fh,
+			       struct v4l2_event_subscription *sub);
+	int (*unsubscribe_event)(struct v4l2_subdev *sd, struct v4l2_fh *fh,
+				 struct v4l2_event_subscription *sub);
 };
 
 /* s_mode: switch the tuner to a specific tuner mode. Replacement of s_radio.
@@ -409,6 +415,8 @@ struct v4l2_subdev_ops {
 #define V4L2_SUBDEV_FL_IS_SPI			(1U << 1)
 /* Set this flag if this subdev needs a device node. */
 #define V4L2_SUBDEV_FL_HAS_DEVNODE		(1U << 2)
+/* Set this flag if this subdev generates events. */
+#define V4L2_SUBDEV_FL_HAS_EVENTS		(1U << 3)
 
 /* Each instance of a subdev driver should create this struct, either
    stand-alone or embedded in a larger struct.
@@ -431,6 +439,8 @@ struct v4l2_subdev {
 	/* subdev device node */
 	struct video_device devnode;
 	unsigned int initialized;
+	/* number of events to be allocated on open */
+	unsigned int nevents;
 };
 
 #define vdev_to_v4l2_subdev(vdev) \
