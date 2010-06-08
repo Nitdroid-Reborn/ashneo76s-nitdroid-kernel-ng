@@ -36,6 +36,8 @@
 #include <plat/gpmc-smc91x.h>
 #include <plat/serial.h>
 
+#include <../drivers/staging/iio/light/tsl2563.h>
+
 #include "mux.h"
 #include "hsmmc.h"
 
@@ -61,6 +63,12 @@ enum {
 
 static struct wl12xx_platform_data wl1251_pdata;
 static struct tsc2005_platform_data tsc2005_pdata;
+
+#if defined(CONFIG_SENSORS_TSL2563) || defined(CONFIG_SENSORS_TSL2563_MODULE)
+static struct tsl2563_platform_data rx51_tsl2563_platform_data = {
+	.cover_comp_gain = 16,
+};
+#endif
 
 static struct omap2_mcspi_device_config wl1251_mcspi_config = {
 	.turbo_mode	= 0,
@@ -742,6 +750,12 @@ static struct i2c_board_info __initdata rx51_peripherals_i2c_board_info_2[] = {
 	{
 		I2C_BOARD_INFO("tlv320aic3x", 0x18),
 	},
+#if defined(CONFIG_SENSORS_TSL2563) || defined(CONFIG_SENSORS_TSL2563_MODULE)
+	{
+		I2C_BOARD_INFO("tsl2563", 0x29),
+		.platform_data = &rx51_tsl2563_platform_data,
+	},
+#endif
 };
 
 static int __init rx51_i2c_init(void)
