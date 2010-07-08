@@ -28,6 +28,7 @@
 #include <linux/device.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
+#include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/poll.h>
 #include <linux/sched.h>
@@ -121,6 +122,8 @@ struct cs_hsi_iface {
 
 	struct hsi_msg			*data_rx_msg;
 	struct hsi_msg			*data_tx_msg;
+
+	struct pm_qos_request_list      *pm_qos_req;
 
 	spinlock_t			lock;
 };
@@ -958,15 +961,18 @@ static int cs_hsi_buf_config(struct cs_hsi_iface *hi,
 
 	if (hi->iface_state == CS_STATE_CONFIGURED &&
 				old_state != hi->iface_state) {
-		pm_qos_add_requirement(PM_QOS_CPU_DMA_LATENCY, DRIVER_NAME,
+		hi->pm_qos_req = pm_qos_add_request(PM_QOS_CPU_DMA_LATENCY,
 				       CS_QOS_LATENCY_FOR_DATA_USEC);
 		local_bh_disable();
 		cs_hsi_read_on_data(hi);
 		local_bh_enable();
 	} else if (old_state == CS_STATE_CONFIGURED &&
-			hi->iface_state != old_state)
-		pm_qos_remove_requirement(PM_QOS_CPU_DMA_LATENCY, DRIVER_NAME);
-
+		   hi->iface_state != old_state) {
+		if (hi->pm_qos_req) {
+			pm_qos_remove_request(hi->pm_qos_req);
+			hi->pm_qos_req = NULL;
+		}
+	}
 	return r;
 
 error:
@@ -1057,6 +1063,11 @@ static void cs_hsi_stop(struct cs_hsi_iface *hi)
 	 */
 	WARN_ON(!cs_state_idle(hi->control_state));
 	WARN_ON(!cs_state_idle(hi->data_state));
+
+	if (hi->pm_qos_req) {
+		pm_qos_remove_request(hi->pm_qos_req);
+		hi->pm_qos_req = 0;
+	}
 
 	spin_lock_bh(&hi->lock);
 	cs_hsi_free_data(hi);
