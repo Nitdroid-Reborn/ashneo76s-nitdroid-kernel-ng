@@ -53,7 +53,7 @@ isp_video_remote_subdev(struct isp_video *video, u32 *pad)
 	remote = media_entity_remote_source(&video->pad);
 
 	if (remote == NULL ||
-	    media_entity_type(remote->entity) != MEDIA_ENTITY_TYPE_SUBDEV)
+	    media_entity_type(remote->entity) != MEDIA_ENTITY_TYPE_V4L2_SUBDEV)
 		return NULL;
 
 	if (pad)
@@ -78,7 +78,7 @@ isp_video_far_end(struct isp_video *video)
 		if (entity == &video->video.entity)
 			continue;
 
-		if (media_entity_type(entity) != MEDIA_ENTITY_TYPE_NODE)
+		if (media_entity_type(entity) != MEDIA_ENTITY_TYPE_DEVNODE)
 			continue;
 
 		far_end = to_isp_video(media_entity_to_video_device(entity));
@@ -136,7 +136,8 @@ static int isp_video_validate_pipeline(struct isp_pipeline *pipe)
 		/* Retrieve the source format */
 		pad = media_entity_remote_source(pad);
 		if (pad == NULL ||
-		    media_entity_type(pad->entity) != MEDIA_ENTITY_TYPE_SUBDEV)
+		    media_entity_type(pad->entity) !=
+				MEDIA_ENTITY_TYPE_V4L2_SUBDEV)
 			break;
 
 		subdev = media_entity_to_v4l2_subdev(pad->entity);
@@ -828,12 +829,12 @@ isp_video_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 		return -EBUSY;
 	}
 
-	/* Lock the pipeline. No link touching an entity in the pipeline can
-	 * be activated or deactivated once the pipeline is locked.
+	/* Start streaming on the pipeline. No link touching an entity in the
+	 * pipeline can be activated or deactivated once streaming is started.
 	 */
 	pipe = video->video.entity.pipe
 	     ? to_isp_pipeline(&video->video.entity) : &video->pipe;
-	media_entity_graph_lock(&video->video.entity, &pipe->pipe);
+	media_entity_pipeline_start(&video->video.entity, &pipe->pipe);
 
 	/* Verify that the currently configured format matches the output of
 	 * the connected subdev.
@@ -921,7 +922,7 @@ error:
 		isp_video_queue_streamoff(&vfh->queue);
 		omap_pm_set_min_bus_tput(video->isp->dev,
 					 OCP_INITIATOR_AGENT, 0);
-		media_entity_graph_unlock(&video->video.entity);
+		media_entity_pipeline_stop(&video->video.entity);
 		video->queue = NULL;
 	}
 
@@ -974,7 +975,7 @@ isp_video_streamoff(struct file *file, void *fh, enum v4l2_buf_type type)
 	video->streaming = 0;
 
 	omap_pm_set_min_bus_tput(video->isp->dev, OCP_INITIATOR_AGENT, 0);
-	media_entity_graph_unlock(&video->video.entity);
+	media_entity_pipeline_stop(&video->video.entity);
 
 done:
 	mutex_unlock(&video->stream_lock);

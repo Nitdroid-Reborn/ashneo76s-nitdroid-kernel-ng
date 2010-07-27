@@ -1540,9 +1540,9 @@ static int resizer_link_setup(struct media_entity *entity,
 	struct isp_res_device *res = v4l2_get_subdevdata(sd);
 
 	switch (local->index | media_entity_type(remote->entity)) {
-	case RESZ_PAD_SINK | MEDIA_ENTITY_TYPE_NODE:
+	case RESZ_PAD_SINK | MEDIA_ENTITY_TYPE_DEVNODE:
 		/* read from memory */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (res->input == RESIZER_INPUT_VP)
 				return -EBUSY;
 			res->input = RESIZER_INPUT_MEMORY;
@@ -1552,9 +1552,9 @@ static int resizer_link_setup(struct media_entity *entity,
 		}
 		break;
 
-	case RESZ_PAD_SINK | MEDIA_ENTITY_TYPE_SUBDEV:
+	case RESZ_PAD_SINK | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
 		/* read from ccdc or previewer */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (res->input == RESIZER_INPUT_MEMORY)
 				return -EBUSY;
 			res->input = RESIZER_INPUT_VP;
@@ -1564,7 +1564,7 @@ static int resizer_link_setup(struct media_entity *entity,
 		}
 		break;
 
-	case RESZ_PAD_SOURCE | MEDIA_ENTITY_TYPE_NODE:
+	case RESZ_PAD_SOURCE | MEDIA_ENTITY_TYPE_DEVNODE:
 		/* resizer always write to memory */
 		break;
 

@@ -1895,9 +1895,9 @@ static int preview_link_setup(struct media_entity *entity,
 	struct isp_prev_device *prev = v4l2_get_subdevdata(sd);
 
 	switch (local->index | media_entity_type(remote->entity)) {
-	case PREV_PAD_SINK | MEDIA_ENTITY_TYPE_NODE:
+	case PREV_PAD_SINK | MEDIA_ENTITY_TYPE_DEVNODE:
 		/* read from memory */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (prev->input == PREVIEW_INPUT_CCDC)
 				return -EBUSY;
 			prev->input = PREVIEW_INPUT_MEMORY;
@@ -1907,9 +1907,9 @@ static int preview_link_setup(struct media_entity *entity,
 		}
 		break;
 
-	case PREV_PAD_SINK | MEDIA_ENTITY_TYPE_SUBDEV:
+	case PREV_PAD_SINK | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
 		/* read from ccdc */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (prev->input == PREVIEW_INPUT_MEMORY)
 				return -EBUSY;
 			prev->input = PREVIEW_INPUT_CCDC;
@@ -1924,9 +1924,9 @@ static int preview_link_setup(struct media_entity *entity,
 	 * Revisit this when it will be implemented, and return -EBUSY for now.
 	 */
 
-	case PREV_PAD_SOURCE | MEDIA_ENTITY_TYPE_NODE:
+	case PREV_PAD_SOURCE | MEDIA_ENTITY_TYPE_DEVNODE:
 		/* write to memory */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (prev->output & ~PREVIEW_OUTPUT_MEMORY)
 				return -EBUSY;
 			prev->output |= PREVIEW_OUTPUT_MEMORY;
@@ -1935,9 +1935,9 @@ static int preview_link_setup(struct media_entity *entity,
 		}
 		break;
 
-	case PREV_PAD_SOURCE | MEDIA_ENTITY_TYPE_SUBDEV:
+	case PREV_PAD_SOURCE | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
 		/* write to resizer */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (prev->output & ~PREVIEW_OUTPUT_RESIZER)
 				return -EBUSY;
 			prev->output |= PREVIEW_OUTPUT_RESIZER;

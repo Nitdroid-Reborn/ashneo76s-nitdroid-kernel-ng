@@ -1103,8 +1103,8 @@ static int csi2_link_setup(struct media_entity *entity,
 	 */
 
 	switch (local->index | media_entity_type(remote->entity)) {
-	case CSI2_PAD_SOURCE | MEDIA_ENTITY_TYPE_NODE:
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+	case CSI2_PAD_SOURCE | MEDIA_ENTITY_TYPE_DEVNODE:
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (csi2->output & ~CSI2_OUTPUT_MEMORY)
 				return -EBUSY;
 			csi2->output |= CSI2_OUTPUT_MEMORY;
@@ -1113,8 +1113,8 @@ static int csi2_link_setup(struct media_entity *entity,
 		}
 		break;
 
-	case CSI2_PAD_SOURCE | MEDIA_ENTITY_TYPE_SUBDEV:
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+	case CSI2_PAD_SOURCE | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (csi2->output & ~CSI2_OUTPUT_CCDC)
 				return -EBUSY;
 			csi2->output |= CSI2_OUTPUT_CCDC;

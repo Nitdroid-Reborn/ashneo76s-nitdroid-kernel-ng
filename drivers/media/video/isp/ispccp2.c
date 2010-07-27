@@ -920,9 +920,9 @@ static int ispccp2_link_setup(struct media_entity *entity,
 	struct isp_ccp2_device *ccp2 = v4l2_get_subdevdata(sd);
 
 	switch (local->index | media_entity_type(remote->entity)) {
-	case CCP2_PAD_SINK | MEDIA_ENTITY_TYPE_NODE:
+	case CCP2_PAD_SINK | MEDIA_ENTITY_TYPE_DEVNODE:
 		/* read from memory */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (ccp2->input == CCP2_INPUT_SENSOR)
 				return -EBUSY;
 			ccp2->input = CCP2_INPUT_MEMORY;
@@ -932,9 +932,9 @@ static int ispccp2_link_setup(struct media_entity *entity,
 		}
 		break;
 
-	case CCP2_PAD_SINK | MEDIA_ENTITY_TYPE_SUBDEV:
+	case CCP2_PAD_SINK | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
 		/* read from sensor/phy */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (ccp2->input == CCP2_INPUT_MEMORY)
 				return -EBUSY;
 			ccp2->input = CCP2_INPUT_SENSOR;
@@ -943,9 +943,9 @@ static int ispccp2_link_setup(struct media_entity *entity,
 				ccp2->input = CCP2_INPUT_NONE;
 		} break;
 
-	case CCP2_PAD_SOURCE | MEDIA_ENTITY_TYPE_SUBDEV:
+	case CCP2_PAD_SOURCE | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
 		/* write to video port/ccdc */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE)
+		if (flags & MEDIA_LINK_FLAG_ENABLED)
 			ccp2->output = CCP2_OUTPUT_CCDC;
 		else
 			ccp2->output = CCP2_OUTPUT_NONE;

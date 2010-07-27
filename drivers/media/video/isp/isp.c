@@ -591,7 +591,8 @@ static int isp_pipeline_enable(struct isp_pipeline *pipe,
 
 		pad = media_entity_remote_source(pad);
 		if (pad == NULL ||
-		    media_entity_type(pad->entity) != MEDIA_ENTITY_TYPE_SUBDEV)
+		    media_entity_type(pad->entity) !=
+				MEDIA_ENTITY_TYPE_V4L2_SUBDEV)
 			break;
 
 		entity = pad->entity;
@@ -680,7 +681,8 @@ static int isp_pipeline_disable(struct isp_pipeline *pipe)
 
 		pad = media_entity_remote_source(pad);
 		if (pad == NULL ||
-		    media_entity_type(pad->entity) != MEDIA_ENTITY_TYPE_SUBDEV)
+		    media_entity_type(pad->entity) !=
+				MEDIA_ENTITY_TYPE_V4L2_SUBDEV)
 			break;
 
 		entity = pad->entity;
@@ -1531,7 +1533,7 @@ static int isp_register_entities(struct isp_device *isp)
 			input = &isp->isp_csi2a.subdev.entity;
 			pad = CSI2_PAD_SINK;
 			flags = MEDIA_LINK_FLAG_IMMUTABLE
-			      | MEDIA_LINK_FLAG_ACTIVE;
+			      | MEDIA_LINK_FLAG_ENABLED;
 			break;
 
 		case ISP_INTERFACE_CCP2B_PHY1:
@@ -1545,7 +1547,7 @@ static int isp_register_entities(struct isp_device *isp)
 			input = &isp->isp_csi2c.subdev.entity;
 			pad = CSI2_PAD_SINK;
 			flags = MEDIA_LINK_FLAG_IMMUTABLE
-			      | MEDIA_LINK_FLAG_ACTIVE;
+			      | MEDIA_LINK_FLAG_ENABLED;
 			break;
 
 		default:
@@ -1672,21 +1674,21 @@ static int isp_initialize_modules(struct isp_device *isp)
 	ret = media_entity_create_link(
 			&isp->isp_ccdc.subdev.entity, CCDC_PAD_SOURCE_VP,
 			&isp->isp_aewb.subdev.entity, 0,
-			MEDIA_LINK_FLAG_ACTIVE | MEDIA_LINK_FLAG_IMMUTABLE);
+			MEDIA_LINK_FLAG_ENABLED | MEDIA_LINK_FLAG_IMMUTABLE);
 	if (ret < 0)
 		goto error_link;
 
 	ret = media_entity_create_link(
 			&isp->isp_ccdc.subdev.entity, CCDC_PAD_SOURCE_VP,
 			&isp->isp_af.subdev.entity, 0,
-			MEDIA_LINK_FLAG_ACTIVE | MEDIA_LINK_FLAG_IMMUTABLE);
+			MEDIA_LINK_FLAG_ENABLED | MEDIA_LINK_FLAG_IMMUTABLE);
 	if (ret < 0)
 		goto error_link;
 
 	ret = media_entity_create_link(
 			&isp->isp_ccdc.subdev.entity, CCDC_PAD_SOURCE_VP,
 			&isp->isp_hist.subdev.entity, 0,
-			MEDIA_LINK_FLAG_ACTIVE | MEDIA_LINK_FLAG_IMMUTABLE);
+			MEDIA_LINK_FLAG_ENABLED | MEDIA_LINK_FLAG_IMMUTABLE);
 	if (ret < 0)
 		goto error_link;
 

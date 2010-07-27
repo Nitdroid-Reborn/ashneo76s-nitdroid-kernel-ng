@@ -2000,11 +2000,11 @@ static int ccdc_link_setup(struct media_entity *entity,
 	struct isp_device *isp = to_isp_device(ccdc);
 
 	switch (local->index | media_entity_type(remote->entity)) {
-	case CCDC_PAD_SINK | MEDIA_ENTITY_TYPE_SUBDEV:
+	case CCDC_PAD_SINK | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
 		/* Read from the sensor (parallel interface), CCP2, CSI2a or
 		 * CSI2c.
 		 */
-		if (!(flags & MEDIA_LINK_FLAG_ACTIVE)) {
+		if (!(flags & MEDIA_LINK_FLAG_ENABLED)) {
 			ccdc->input = CCDC_INPUT_NONE;
 			break;
 		}
@@ -2028,11 +2028,11 @@ static int ccdc_link_setup(struct media_entity *entity,
 	 * Revisit this when it will be implemented, and return -EBUSY for now.
 	 */
 
-	case CCDC_PAD_SOURCE_VP | MEDIA_ENTITY_TYPE_SUBDEV:
+	case CCDC_PAD_SOURCE_VP | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
 		/* Write to preview engine, histogram and H3A. When none of
 		 * those links are active, the video port can be disabled.
 		 */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (ccdc->output & ~CCDC_OUTPUT_PREVIEW)
 				return -EBUSY;
 			ccdc->output |= CCDC_OUTPUT_PREVIEW;
@@ -2041,9 +2041,9 @@ static int ccdc_link_setup(struct media_entity *entity,
 		}
 		break;
 
-	case CCDC_PAD_SOURCE_OF | MEDIA_ENTITY_TYPE_NODE:
+	case CCDC_PAD_SOURCE_OF | MEDIA_ENTITY_TYPE_DEVNODE:
 		/* Write to memory */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (ccdc->output & ~CCDC_OUTPUT_MEMORY)
 				return -EBUSY;
 			ccdc->output |= CCDC_OUTPUT_MEMORY;
@@ -2052,9 +2052,9 @@ static int ccdc_link_setup(struct media_entity *entity,
 		}
 		break;
 
-	case CCDC_PAD_SOURCE_OF | MEDIA_ENTITY_TYPE_SUBDEV:
+	case CCDC_PAD_SOURCE_OF | MEDIA_ENTITY_TYPE_V4L2_SUBDEV:
 		/* Write to resizer */
-		if (flags & MEDIA_LINK_FLAG_ACTIVE) {
+		if (flags & MEDIA_LINK_FLAG_ENABLED) {
 			if (ccdc->output & ~CCDC_OUTPUT_RESIZER)
 				return -EBUSY;
 			ccdc->output |= CCDC_OUTPUT_RESIZER;
