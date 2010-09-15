@@ -1283,6 +1283,7 @@ static int cs_char_open(struct inode *unused, struct file *file)
 				cs_char_data.mmap_base, cs_char_data.mmap_size);
 	if (ret) {
 		dev_err(&cs_char_data.cl->device, "Unable to initialize HSI\n");
+		free_page(cs_char_data.mmap_base);
 		goto out;
 	}
 
