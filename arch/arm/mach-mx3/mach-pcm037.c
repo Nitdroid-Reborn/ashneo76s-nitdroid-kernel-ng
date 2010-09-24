@@ -317,7 +317,6 @@ static struct soc_camera_link iclink_mt9v022 = {
 	.bus_id		= 0,		/* Must match with the camera ID */
 	.board_info	= &pcm037_i2c_camera[1],
 	.i2c_adapter_id	= 2,
-	.module_name	= "mt9v022",
 };
 
 static struct soc_camera_link iclink_mt9t031 = {
@@ -325,7 +324,6 @@ static struct soc_camera_link iclink_mt9t031 = {
 	.power		= pcm037_camera_power,
 	.board_info	= &pcm037_i2c_camera[0],
 	.i2c_adapter_id	= 2,
-	.module_name	= "mt9t031",
 };
 
 static struct i2c_board_info pcm037_i2c_devices[] = {
