@@ -100,6 +100,9 @@ enum {
 	V4L2_IDENT_KS0127  = 1127,
 	V4L2_IDENT_KS0127B = 1128,
 
+	/* module adp1653: just ident 1653 */
+	V4L2_IDENT_ADP1653 = 1653,
+
 	/* module indycam: just ident 2000 */
 	V4L2_IDENT_INDYCAM = 2000,
 
@@ -123,6 +126,9 @@ enum {
 	/* module cs5345: just ident 5345 */
 	V4L2_IDENT_CS5345 = 5345,
 
+	/* module ad5820: just ident 5820 */
+	V4L2_IDENT_AD5820 = 5820,
+
 	/* module tea6415c: just ident 6415 */
 	V4L2_IDENT_TEA6415C = 6415,
 
@@ -131,6 +137,9 @@ enum {
 
 	/* module saa6588: just ident 6588 */
 	V4L2_IDENT_SAA6588 = 6588,
+
+	/* module vs6555: just ident 6555 */
+	V4L2_IDENT_VS6555 = 6555,
 
 	/* module saa6752hs: reserved range 6750-6759 */
 	V4L2_IDENT_SAA6752HS = 6752,
@@ -168,6 +177,9 @@ enum {
 
 	/* module mt9v011, just ident 8243 */
 	V4L2_IDENT_MT9V011 = 8243,
+
+	/* module tcm8330md: just ident 8330 */
+	V4L2_IDENT_TCM8330MD = 8330,
 
 	/* module wm8739: just ident 8739 */
 	V4L2_IDENT_WM8739 = 8739,
@@ -287,6 +299,12 @@ enum {
 
 	/* HV7131R CMOS sensor: just ident 46000 */
 	V4L2_IDENT_HV7131R		= 46000,
+
+	/* Toshiba ET8EK8 sensor; just ident 46001 */
+	V4L2_IDENT_ET8EK8 = 46001,
+
+	/* SMIA sensor; just ident 46002 */
+	V4L2_IDENT_SMIA = 46002,
 
 	/* Sharp RJ54N1CB0C, 0xCB0C = 51980 */
 	V4L2_IDENT_RJ54N1CB0C = 51980,

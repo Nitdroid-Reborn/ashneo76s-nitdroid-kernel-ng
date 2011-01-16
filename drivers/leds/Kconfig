@@ -302,6 +302,13 @@ config LEDS_MC13783
 	  This option enable support for on-chip LED drivers found
 	  on Freescale Semiconductor MC13783 PMIC.
 
+config LEDS_LP5523
+	tristate "LED Support for LP5523 chip"
+	depends on I2C
+	help
+	  This option enables support for the National Semiconductor
+	  LP5523 LED chip.
+
 config LEDS_TRIGGERS
 	bool "LED Trigger support"
 	help

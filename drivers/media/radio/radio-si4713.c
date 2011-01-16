@@ -28,6 +28,7 @@
 #include <linux/i2c.h>
 #include <linux/videodev2.h>
 #include <linux/slab.h>
+#include <linux/regulator/consumer.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-common.h>
 #include <media/v4l2-ioctl.h>
@@ -48,6 +49,7 @@ MODULE_VERSION("0.0.1");
 struct radio_si4713_device {
 	struct v4l2_device		v4l2_dev;
 	struct video_device		*radio_dev;
+	struct regulator		*reg_vio;
 };
 
 /* radio_si4713_fops - file operations interface */
@@ -283,27 +285,37 @@ static int radio_si4713_pdriver_probe(struct platform_device *pdev)
 		goto free_rsdev;
 	}
 
+	rsdev->reg_vio = regulator_get(&pdev->dev, "vio");
+	if (IS_ERR(rsdev->reg_vio)) {
+		dev_err(&pdev->dev, "Cannot get vio regulator\n");
+		rval = PTR_ERR(rsdev->reg_vio);
+		goto unregister_v4l2_dev;
+	}
+	rval = regulator_enable(rsdev->reg_vio);
+	if (rval)
+		goto reg_put;
+
 	adapter = i2c_get_adapter(pdata->i2c_bus);
 	if (!adapter) {
 		dev_err(&pdev->dev, "Cannot get i2c adapter %d\n",
 							pdata->i2c_bus);
 		rval = -ENODEV;
-		goto unregister_v4l2_dev;
+		goto reg_disable;
 	}
 
-	sd = v4l2_i2c_new_subdev_board(&rsdev->v4l2_dev, adapter, "si4713_i2c",
-					pdata->subdev_board_info, NULL);
+	sd = v4l2_i2c_new_subdev_board(&rsdev->v4l2_dev, adapter,
+					pdata->subdev_board_info, NULL, 0);
 	if (!sd) {
 		dev_err(&pdev->dev, "Cannot get v4l2 subdevice\n");
 		rval = -ENODEV;
-		goto unregister_v4l2_dev;
+		goto put_adapter;
 	}
 
 	rsdev->radio_dev = video_device_alloc();
 	if (!rsdev->radio_dev) {
 		dev_err(&pdev->dev, "Failed to alloc video device.\n");
 		rval = -ENOMEM;
-		goto unregister_v4l2_dev;
+		goto put_adapter;
 	}
 
 	memcpy(rsdev->radio_dev, &radio_si4713_vdev_template,
@@ -320,6 +332,12 @@ static int radio_si4713_pdriver_probe(struct platform_device *pdev)
 
 free_vdev:
 	video_device_release(rsdev->radio_dev);
+put_adapter:
+	i2c_put_adapter(adapter);
+reg_disable:
+	regulator_disable(rsdev->reg_vio);
+reg_put:
+	regulator_put(rsdev->reg_vio);
 unregister_v4l2_dev:
 	v4l2_device_unregister(&rsdev->v4l2_dev);
 free_rsdev:
@@ -335,8 +353,14 @@ static int __exit radio_si4713_pdriver_remove(struct platform_device *pdev)
 	struct radio_si4713_device *rsdev = container_of(v4l2_dev,
 						struct radio_si4713_device,
 						v4l2_dev);
+	struct v4l2_subdev *sd = list_entry(v4l2_dev->subdevs.next,
+					    struct v4l2_subdev, list);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
 
 	video_unregister_device(rsdev->radio_dev);
+	i2c_put_adapter(client->adapter);
+	regulator_disable(rsdev->reg_vio);
+	regulator_put(rsdev->reg_vio);
 	v4l2_device_unregister(&rsdev->v4l2_dev);
 	kfree(rsdev);
 
