@@ -18,6 +18,7 @@
 #include <linux/spi/wl12xx.h>
 #include <linux/i2c.h>
 #include <linux/i2c/twl.h>
+#include <linux/i2c/bq2415x.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/regulator/machine.h>
@@ -30,6 +31,7 @@
 #include <linux/hsi/hsi.h>
 #include <linux/cmt.h>
 #include <linux/irq.h>
+#include <linux/usb/android_composite.h>
 
 #include <plat/mcspi.h>
 #include <plat/mux.h>
@@ -41,6 +43,7 @@
 #include <plat/gpmc-smc91x.h>
 #include <plat/serial.h>
 #include <plat/ssi.h>
+
 
 #include <../drivers/staging/iio/light/tsl2563.h>
 #include <linux/lis3lv02d.h>
@@ -277,6 +280,128 @@ static struct spi_board_info rx51_peripherals_spi_board_info[] __initdata = {
 
 static struct platform_device rx51_charger_device = {
 	.name = "isp1704_charger",
+};
+
+static char *usb_functions_ums[] = {
+    "usb_mass_storage",
+};
+
+static char *usb_functions_ums_adb[] = {
+    "usb_mass_storage",
+    "adb",
+};
+
+static char *usb_functions_rndis[] = {
+    "rndis",
+};
+
+static char *usb_functions_rndis_adb[] = {
+    "rndis",
+    "adb",
+};
+
+#ifdef CONFIG_USB_ANDROID_DIAG
+static char *usb_functions_adb_diag[] = {
+    "usb_mass_storage",
+    "adb",
+    "diag",
+};
+#endif
+
+static char *usb_functions_all[] = {
+#ifdef CONFIG_USB_ANDROID_RNDIS
+    "rndis",
+#endif
+    "usb_mass_storage",
+    "adb",
+#ifdef CONFIG_USB_ANDROID_ACM
+    "acm",
+#endif
+#ifdef CONFIG_USB_ANDROID_DIAG
+    "diag",
+#endif
+};
+
+static struct android_usb_product usb_products[] = {
+    {
+        .product_id = 0x4e11,
+        .num_functions  = ARRAY_SIZE(usb_functions_ums),
+        .functions  = usb_functions_ums,
+    },
+    {
+        .product_id = 0x4e12,
+        .num_functions  = ARRAY_SIZE(usb_functions_ums_adb),
+        .functions  = usb_functions_ums_adb,
+    },
+    {
+        .product_id = 0x4e13,
+        .num_functions  = ARRAY_SIZE(usb_functions_rndis),
+        .functions  = usb_functions_rndis,
+    },
+    {
+        .product_id = 0x4e14,
+        .num_functions  = ARRAY_SIZE(usb_functions_rndis_adb),
+        .functions  = usb_functions_rndis_adb,
+    },
+#ifdef CONFIG_USB_ANDROID_DIAG
+    {
+        .product_id = 0x4e17,
+        .num_functions  = ARRAY_SIZE(usb_functions_adb_diag),
+        .functions  = usb_functions_adb_diag,
+    },
+#endif
+};
+
+static struct usb_mass_storage_platform_data mass_storage_pdata = {
+    .nluns      = 1,
+    .vendor     = "Google, Inc.",
+    .product    = "Nexus One",
+    .release    = 0x0100,
+};
+
+static struct platform_device usb_mass_storage_device = {
+    .name   = "usb_mass_storage",
+    .id = -1,
+    .dev    = {
+        .platform_data = &mass_storage_pdata,
+    },
+};
+
+#ifdef CONFIG_USB_ANDROID_RNDIS
+static struct usb_ether_platform_data rndis_pdata = {
+    /* ethaddr is filled by board_serialno_setup */
+    .vendorID   = 0x18d1,
+    .vendorDescr    = "Google, Inc.",
+};
+
+static struct platform_device rndis_device = {
+    .name   = "rndis",
+    .id = -1,
+    .dev    = {
+        .platform_data = &rndis_pdata,
+    },
+};
+#endif
+
+
+static struct android_usb_platform_data android_usb_pdata = {
+    .vendor_id  = 0x18d1,
+    .product_id = 0x4e11,
+    .version    = 0x0100,
+    .product_name       = "Nexus One",
+    .manufacturer_name  = "Google, Inc.",
+    .num_products = ARRAY_SIZE(usb_products),
+    .products = usb_products,
+    .num_functions = ARRAY_SIZE(usb_functions_all),
+    .functions = usb_functions_all,
+};
+
+static struct platform_device android_device = {
+	.name = "android_usb",
+    .id     = -1,
+    .dev        = {
+        .platform_data = &android_usb_pdata,
+    },
 };
 
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
@@ -553,6 +678,14 @@ static struct regulator_init_data rx51_vaux1 = {
 	.consumer_supplies	= rx51_vaux1_consumers,
 };
 
+static struct regulator_consumer_supply rx51_vaux2_consumers[] = {
+	REGULATOR_SUPPLY("VDD_CSIPHY1", "omap3isp"),	/* OMAP ISP */
+	REGULATOR_SUPPLY("VDD_CSIPHY2", "omap3isp"),	/* OMAP ISP */
+	{
+		.supply		= "vaux2",
+	},
+};
+
 static struct regulator_init_data rx51_vaux2 = {
 	.constraints = {
 		.name			= "VCSI",
@@ -563,6 +696,8 @@ static struct regulator_init_data rx51_vaux2 = {
 		.valid_ops_mask		= REGULATOR_CHANGE_MODE
 					| REGULATOR_CHANGE_STATUS,
 	},
+	.num_consumer_supplies	= ARRAY_SIZE(rx51_vaux2_consumers),
+	.consumer_supplies	= rx51_vaux2_consumers,
 };
 
 /* VAUX3 - adds more power to VIO_18 rail */
@@ -915,6 +1050,13 @@ static struct twl4030_power_data rx51_t2scripts_data __initdata = {
 };
 
 
+static struct twl4030_codec_vibra_data rx51_twl4030_vibra_data = {
+	.coexist = 0,
+};
+
+struct twl4030_codec_data rx51_twl4030_codec_data = {
+	.vibra = &rx51_twl4030_vibra_data,
+};
 
 static struct twl4030_platform_data rx51_twldata __initdata = {
 	.irq_base		= TWL4030_IRQ_BASE,
@@ -926,6 +1068,7 @@ static struct twl4030_platform_data rx51_twldata __initdata = {
 	.madc			= &rx51_madc_data,
 	.usb			= &rx51_usb_data,
 	.power			= &rx51_t2scripts_data,
+    .codec          = &rx51_twl4030_codec_data,
 
 	.vaux1			= &rx51_vaux1,
 	.vaux2			= &rx51_vaux2,
@@ -943,6 +1086,22 @@ static struct aic3x_pdata rx51_aic3x_data __initdata = {
 static struct tpa6130a2_platform_data rx51_tpa6130a2_data __initdata = {
 	.id			= TPA6130A2,
 	.power_gpio		= 98,
+};
+
+struct bq27200_platform_data {
+        int dummy;
+};
+
+static struct bq27200_platform_data bq27200_config = {
+        .dummy = 0,
+};
+
+    
+static struct bq2415x_platform_data rx51_bq24150_data = {
+                /* Values taken from N900 on usb host charge */
+                .max_charger_voltagemA = 4200,
+                .max_charger_currentmA = 950,
+                .termination_currentmA = 100,
 };
 
 static struct i2c_board_info __initdata rx51_peripherals_i2c_board_info_1[] = {
@@ -974,9 +1133,17 @@ static struct i2c_board_info __initdata rx51_peripherals_i2c_board_info_2[] = {
 		.platform_data  = &rx51_lp5523_platform_data,
 	},
 #endif
+    {
+        I2C_BOARD_INFO("bq27200", 0x55),
+        .platform_data = &bq27200_config,
+    },
 	{
 		I2C_BOARD_INFO("tpa6130a2", 0x60),
 		.platform_data = &rx51_tpa6130a2_data,
+	},
+	{
+		I2C_BOARD_INFO("bq24150", 0x6b),
+		.platform_data = &rx51_bq24150_data,
 	},
 };
 
@@ -1372,4 +1539,5 @@ void __init rx51_peripherals_init(void)
 				ARRAY_SIZE(rx51_peripherals_spi_board_info));
 	omap2_hsmmc_init(mmc);
 	platform_device_register(&rx51_charger_device);
+	platform_device_register(&android_device);
 }
