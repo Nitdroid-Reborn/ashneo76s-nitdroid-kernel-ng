@@ -44,6 +44,8 @@
 #define BQ27500_FLAG_DSC		BIT(0)
 #define BQ27500_FLAG_FC			BIT(9)
 
+#define POLLING_DELAY HZ*2
+
 /* If the system has several batteries we need a different name for each
  * of them...
  */
@@ -61,9 +63,13 @@ enum bq27x00_chip { BQ27000, BQ27500 };
 struct bq27x00_device_info {
 	struct device 		*dev;
 	int			id;
+    int         charge_rsoc;
+    int         status;
 	struct bq27x00_access_methods	*bus;
 	struct power_supply	bat;
 	enum bq27x00_chip	chip;
+    struct delayed_work bq27_work;
+
 
 	struct i2c_client	*client;
 };
@@ -75,9 +81,10 @@ static enum power_supply_property bq27x00_battery_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_TEMP,
+/*  Those values are unreliable 
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_NOW,
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG,
-	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
+	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,*/
 };
 
 /*
@@ -231,6 +238,7 @@ static int bq27x00_battery_time(struct bq27x00_device_info *di, int reg,
 		dev_err(di->dev, "error reading register %02x\n", reg);
 		return ret;
 	}
+    dev_dbg(di->dev, "Read time %d\n", tval);
 
 	if (tval == 65535)
 		return -ENODATA;
@@ -251,7 +259,7 @@ static int bq27x00_battery_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		ret = bq27x00_battery_status(di, val);
+		val->intval = di->status;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 	case POWER_SUPPLY_PROP_PRESENT:
@@ -263,7 +271,7 @@ static int bq27x00_battery_get_property(struct power_supply *psy,
 		val->intval = bq27x00_battery_current(di);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-		val->intval = bq27x00_battery_rsoc(di);
+		val->intval = di->charge_rsoc;
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
 		val->intval = bq27x00_battery_temperature(di);
@@ -336,6 +344,31 @@ static int bq27x00_read_i2c(u8 reg, int *rt_value, int b_single,
 	return err;
 }
 
+static void* bq27_work_handler(struct delayed_work *work)
+{
+    union power_supply_propval val;
+    int new_charge_rsoc, new_status;
+    struct bq27x00_device_info *di =
+        container_of(work, struct bq27x00_device_info, bq27_work);
+
+    new_charge_rsoc = bq27x00_battery_rsoc(di);
+    bq27x00_battery_status(di, &val);
+    new_status = val.intval;        
+
+    if (di->charge_rsoc != new_charge_rsoc || di->status != new_status) {
+        di->charge_rsoc = new_charge_rsoc;
+        di->status = new_status;
+        printk(KERN_DEBUG "new rsoc/status %d/%d\n",
+                di->charge_rsoc, di->status);
+
+        power_supply_changed(&di->bat);
+    }
+
+
+    schedule_delayed_work(&di->bq27_work, POLLING_DELAY);
+    return 0;
+}
+
 static int bq27x00_battery_probe(struct i2c_client *client,
 				 const struct i2c_device_id *id)
 {
@@ -395,6 +428,9 @@ static int bq27x00_battery_probe(struct i2c_client *client,
 	}
 
 	dev_info(&client->dev, "support ver. %s enabled\n", DRIVER_VERSION);
+
+    INIT_DELAYED_WORK(&di->bq27_work, bq27_work_handler);
+    schedule_delayed_work(&di->bq27_work, 0);
 
 	return 0;
 
