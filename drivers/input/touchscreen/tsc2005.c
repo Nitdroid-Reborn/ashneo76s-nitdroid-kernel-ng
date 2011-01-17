@@ -102,6 +102,44 @@
 #define TSC2005_SPI_MAX_SPEED_HZ	10000000
 #define TSC2005_PENUP_TIME_MS		40
 
+
+#ifndef MIN
+# define MIN(a,b)  ((a)<(b)?(a):(b))
+#endif
+#ifndef MAX
+# define MAX(a,b)  ((a)>(b)?(a):(b))
+#endif
+
+
+static int prescale = 0;
+module_param(prescale,bool,0644);
+MODULE_PARM_DESC(prescale, "Scale to screen coordinates");
+
+static int x_scale = 3700;
+module_param(x_scale,int,0644);
+MODULE_PARM_DESC(x_scale, "X scaling parameter");
+
+static int y_scale = 3500;
+module_param(y_scale,int,0644);
+MODULE_PARM_DESC(y_scale, "Y scaling parameter");
+
+static int x_offset = 160;
+module_param(x_offset,int,0644);
+MODULE_PARM_DESC(x_offset, "X offset parameter");
+
+static int y_offset = 340;
+module_param(y_offset,int,0644);
+MODULE_PARM_DESC(y_offset, "Y offset parameter");
+
+static int x_size = 800;
+module_param(x_size,int,0644);
+MODULE_PARM_DESC(x_size, "screen width");
+
+static int y_size = 480;
+module_param(y_size,int,0644);
+MODULE_PARM_DESC(y_size, "screen height");
+
+
 struct tsc2005_spi_rd {
 	struct spi_transfer	spi_xfer;
 	u32			spi_tx;
@@ -208,6 +246,14 @@ static void tsc2005_update_pen_state(struct tsc2005 *ts,
 				     int x, int y, int pressure)
 {
 	if (pressure) {
+		if (prescale) {
+			x = (x - x_offset) * x_size / x_scale;
+			y = (4096 - y - y_offset) * y_size / y_scale;
+			x = MIN(x,x_size);
+			x = MAX(x,0);
+			y = MIN(y,y_size);
+			y = MAX(y,0);
+		}
 		input_report_abs(ts->idev, ABS_X, x);
 		input_report_abs(ts->idev, ABS_Y, y);
 		input_report_abs(ts->idev, ABS_PRESSURE, pressure);
@@ -544,6 +590,11 @@ static int __devinit tsc2005_setup(struct tsc2005 *ts,
 	ts->esd_timeout	= pdata->esd_timeout_ms;
 	ts->set_reset	= pdata->set_reset;
 
+	if (prescale) {
+		x_max = x_size;
+		y_max = y_size;
+	}
+
 	ts->idev = input_allocate_device();
 	if (ts->idev == NULL)
 		return -ENOMEM;
@@ -551,8 +602,8 @@ static int __devinit tsc2005_setup(struct tsc2005 *ts,
 	snprintf(ts->phys, sizeof(ts->phys), "%s/input-ts",
 		 dev_name(&ts->spi->dev));
 	ts->idev->phys = ts->phys;
-	ts->idev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
-	ts->idev->absbit[0] = BIT(ABS_X) | BIT(ABS_Y) | BIT(ABS_PRESSURE);
+	ts->idev->evbit[0] = BIT_MASK(EV_ABS) | BIT_MASK(EV_KEY);
+	ts->idev->absbit[0] = BIT_MASK(ABS_X) | BIT_MASK(ABS_Y) | BIT_MASK(ABS_PRESSURE);
 	ts->idev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 
 	input_set_abs_params(ts->idev, ABS_X, 0, x_max, fudge_x, 0);
