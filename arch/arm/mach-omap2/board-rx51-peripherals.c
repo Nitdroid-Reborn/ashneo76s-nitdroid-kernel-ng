@@ -32,6 +32,7 @@
 #include <linux/cmt.h>
 #include <linux/irq.h>
 #include <linux/usb/android_composite.h>
+#include <linux/switch.h>
 
 #include <plat/mcspi.h>
 #include <plat/mux.h>
@@ -1523,6 +1524,21 @@ static void __init rx51_ssi_init(void)
 	hsi_register_board_info(rx51_ssi_cl, ARRAY_SIZE(rx51_ssi_cl));
 }
 
+static struct gpio_switch_platform_data headset_switch_data = { 
+    .name = "h2w", 
+    .gpio = 177,
+    .state_on = "0",
+    .state_off = "1",
+}; 
+
+static struct platform_device headset_switch_device = { 
+    .name             = "switch-gpio", 
+    .dev = { 
+        .platform_data    = &headset_switch_data, 
+    } 
+}; 
+
+
 void __init rx51_peripherals_init(void)
 {
 	rx51_i2c_init();
@@ -1540,4 +1556,5 @@ void __init rx51_peripherals_init(void)
 	omap2_hsmmc_init(mmc);
 	platform_device_register(&rx51_charger_device);
 	platform_device_register(&android_device);
+	platform_device_register(&headset_switch_device);
 }
